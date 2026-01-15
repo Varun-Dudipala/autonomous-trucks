@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 style="text-align:center;">Add a New Truck</h1>
+
+<form method="POST">
+    <label>Truck ID:</label>
+    <input type="text" name="truck_id" required>
+
+    <label>Location:</label>
+    <input type="text" name="location" required>
+
+    <label>Speed (km/h):</label>
+    <input type="number" name="speed" required>
+
+    <label>Status:</label>
+    <select name="status">
+        <option>Active</option>
+        <option>Inactive</option>
+    </select>
+
+    <button type="submit">Add Truck</button>
+</form>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Set all form labels to black */
+    label {
+        color: black;
+    }
+
+    /* Change the main heading color from yellow to a professional blue */
+    .page-title {
+        color: var(--primary-color);
+    }
+</style>
+<div class="alerts-container">
+    <h1 class="page-title">Alert Management</h1>
+    
+    <div class="filter-section">
+        <form method="GET" action="{{ url_for('alerts_dashboard') }}" class="filter-form">
+            <div class="filter-group">
+                <label for="severity">Filter by Severity:</label>
+                <select name="severity" id="severity" onchange="this.form.submit()">
+                    <option value="">All Severities</option>
+                    <option value="high" {% if active_severity == 'high' %}selected{% endif %}>High</option>
+                    <option value="medium" {% if active_severity == 'medium' %}selected{% endif %}>Medium</option>
+                    <option value="low" {% if active_severity == 'low' %}selected{% endif %}>Low</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="truck_id">Filter by Truck:</label>
+                <select name="truck_id" id="truck_id" onchange="this.form.submit()">
+                    <option value="">All Trucks</option>
+                    {% for truck in trucks %}
+                    <option value="{{ truck.truck_id }}" {% if active_truck == truck.truck_id %}selected{% endif %}>
+                        {{ truck.truck_id }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+        
+        <div class="test-alert-section">
+            <button onclick="toggleTestAlertForm()" class="btn btn-secondary">Create Test Alert</button>
+            <div id="test-alert-form" style="display: none;">
+                <form method="POST" action="{{ url_for('create_test_alert') }}" class="test-alert-form">
+                    <div class="form-group">
+                        <label for="test_truck_id" style="color: black;">Truck ID:</label>
+                        <select name="truck_id" id="test_truck_id" required>
+                            {% for truck in trucks %}
+                            <option value="{{ truck.truck_id }}">{{ truck.truck_id }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="severity" style="color: black;">Severity:</label>
+                        <select name="severity" id="severity">
+                            <option value="high">High</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn">Create Alert</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="alerts-list">
+        {% if alerts %}
+            {% for alert in alerts %}
+            <div class="alert-card severity-{{ alert.severity }}">
+                <div class="alert-header">
+                    <div class="alert-type-badge">{{ alert.alert_type }}</div>
+                    <div class="alert-timestamp">{{ alert.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                </div>
+                
+                <div class="alert-content">
+                    <h3>{{ alert.truck_id }}</h3>
+                    <p class="alert-message">{{ alert.message }}</p>
+                </div>
+                
+                <div class="alert-actions">
+                    {% if not alert.read %}
+                    <a href="{{ url_for('mark_read', alert_id=alert._id) }}" class="btn btn-small">Mark as Read</a>
+                    {% endif %}
+                    {% if not alert.acknowledged %}
+                    <a href="{{ url_for('acknowledge_alert', alert_id=alert._id) }}" class="btn btn-primary btn-small">Acknowledge</a>
+                    {% endif %}
+                </div>
+                
+                <div class="alert-status">
+                    {% if alert.read %}
+                    <span class="status-badge read">Read</span>
+                    {% else %}
+                    <span class="status-badge unread">Unread</span>
+                    {% endif %}
+                    
+                    {% if alert.acknowledged %}
+                    <span class="status-badge acknowledged">Acknowledged</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-alerts">
+                <p>No alerts found matching your criteria.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function toggleTestAlertForm() {
+    const form = document.getElementById('test-alert-form');
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+    } else {
+        form.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

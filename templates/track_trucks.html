@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Track Trucks</h1>
+<div>
+    {% for truck in trucks %}
+    <p>Truck ID: {{ truck.truck_id }} is currently at {{ truck.location }}</p>
+    {% endfor %}
+</div>
+{% endblock %}

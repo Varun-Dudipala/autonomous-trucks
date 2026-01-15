@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 style="text-align:center;">Truck Simulation</h1>
+
+<div class="simulation-container">
+    <div class="simulation-form">
+        <h3>Set Up Simulation</h3>
+        <form method="POST" action="{{ url_for('run_simulation') }}">
+            <div class="form-group">
+                <label for="truck_id">Select Truck:</label>
+                <select name="truck_id" id="truck_id" required>
+                    <option value="">-- Select Truck --</option>
+                    {% for truck in trucks %}
+                    <option value="{{ truck.truck_id }}" {% if request.form.truck_id == truck.truck_id %}selected{% endif %}>{{ truck.truck_id }} ({{ truck.status }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="simulation_type">Simulation Type:</label>
+                <select name="simulation_type" id="simulation_type" required>
+                    <option value="">-- Select Simulation Type --</option>
+                    <option value="fuel" {% if request.form.simulation_type == 'fuel' %}selected{% endif %}>Fuel Efficiency</option>
+                    <option value="route" {% if request.form.simulation_type == 'route' %}selected{% endif %}>Route Optimization</option>
+                    <option value="carla_automatic" {% if request.form.simulation_type == 'carla_automatic' %}selected{% endif %}>CARLA Simulation</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="duration">Simulation Duration (minutes):</label>
+                <input type="number" name="duration" id="duration" min="1" max="600" value="{{ request.form.get('duration', '10') }}" required>
+            </div>
+            
+            {% set show_route_options = request.form.simulation_type == 'route' %}
+            <div class="form-group simulation-options" id="routeOptions" style="display: {{ 'block' if show_route_options else 'none' }};">
+                <h4>Route Options (for Route Optimization)</h4>
+                <label><input type="checkbox" name="highway" value="true" {% if request.form.get('highway') == 'true' %}checked{% endif %}> Use Highways (Uncheck to avoid)</label>
+                <label><input type="checkbox" name="tolls" value="true" {% if request.form.get('tolls') == 'true' %}checked{% endif %}> Allow Toll Roads (Uncheck to avoid)</label>
+            </div>
+            
+            <button type="submit" class="btn">Run Simulation</button>
+        </form>
+    </div>
+    
+    <div class="simulation-results">
+        <h3>Simulation Results</h3>
+        
+        {% if results %}
+            <div class="results-panel" id="results-panel">
+                <h4>{{ results.type }} for Truck {{ results.truck_id }}{% if results.destination %} to {{ results.destination }}{% endif %}</h4>
+                <div class="results-data">
+                    {% if results.type == 'Pygame Truck POV' %} {# Or however you set results.type in app.py #}
+                        <p>Pygame simulation was triggered.</p>
+                         {% if results.message %}<p>Message: {{ results.message }}</p>{% endif %}
+                         {% if results.error %}<p>Error: {{ results.error }}</p>{% endif %}
+                    {% elif results.type %} {# For Fuel and Route types #}
+                         <div class="result-item">
+                            <span class="result-label">Distance:</span>
+                            <span class="result-value">{{ results.distance_km }} km</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Est. Time:</span>
+                            <span class="result-value">{{ results.duration_min }} min</span>
+                        </div>
+                        {% if results.type == 'Fuel Efficiency' %}
+                        <div class="result-item">
+                            <span class="result-label">Est. Fuel Used:</span>
+                            <span class="result-value">{{ results.fuel_liters }} L</span>
+                        </div>
+                        {% elif results.type == 'Route Optimization' %}
+                        <div class="result-item">
+                            <span class="result-label">Criteria:</span>
+                            <span class="result-value">Avoided: {{ results.avoided if results.avoided else "None" }}</span>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+                 <div class="simulation-chart" style="margin-top: 20px; text-align: center; color: #777;">
+                    <p>(Chart/Further details would display here if implemented)</p>
+                </div>
+            </div>
+        {% elif get_flashed_messages(category_filter=['error']) %}
+            <div class="results-panel-placeholder" style="text-align: center; padding: 20px; border: 1px dashed #ccc; margin-top:10px;">
+                <p>Please review errors above or in the main messages area. Then, select parameters and click "Run Simulation" to see results.</p>
+            </div>
+        {% else %}
+             <div class="results-panel-placeholder" style="text-align: center; padding: 20px; border: 1px dashed #ccc; margin-top:10px;">
+                <p>Select parameters and click "Run Simulation" to see results.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const simulationTypeSelect = document.getElementById('simulation_type');
+    const routeOptionsDiv = document.getElementById('routeOptions');
+
+    function toggleSimulationOptions() {
+        routeOptionsDiv.style.display = 'none'; // Hide by default
+
+        if (simulationTypeSelect.value === 'route') {
+            routeOptionsDiv.style.display = 'block';
+        }
+        // No specific options for 'pygame_truck_pov' or 'fuel' in this setup
+    }
+
+    // Initial check
+    toggleSimulationOptions();
+
+    simulationTypeSelect.addEventListener('change', toggleSimulationOptions);
+});
+</script>
+{% endblock %}

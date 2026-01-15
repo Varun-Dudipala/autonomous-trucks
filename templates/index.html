@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 style="margin-bottom: 30px;">Autonomous Truck Fleet Dashboard</h1>
+
+<!-- Summary Cards -->
+<div class="dashboard-grid">
+    <div class="dashboard-card">
+        <h3>Total Trucks</h3>
+        <div class="number">{{ trucks|length }}</div>
+        <div class="change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>5% from last week</span>
+        </div>
+    </div>
+    
+    <div class="dashboard-card">
+        <h3>Active Trucks</h3>
+        <div class="number">{{ trucks|selectattr('status', 'equalto', 'Active')|list|length }}</div>
+        <div class="change positive">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+            <span>8% from last week</span>
+        </div>
+    </div>
+    
+    <div class="dashboard-card">
+        <h3>Maintenance</h3>
+        <div class="number">{{ trucks|selectattr('status', 'equalto', 'Maintenance')|list|length }}</div>
+        <div class="change negative">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>3% from last week</span>
+        </div>
+    </div>
+    
+    <div class="dashboard-card">
+        <h3>Alerts</h3>
+        <div class="number">{{ unread_alert_count }}</div>
+        <div class="change negative">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>12% from yesterday</span>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="chart-row" style="display: flex; gap: 20px; margin-bottom: 30px;">
+    <div class="chart-container" style="flex: 1; height: 300px;">
+        <div class="chart-header">
+            <h2 class="chart-title">Truck Status Distribution</h2>
+        </div>
+        <div style="position: relative; height: 250px;">
+            <canvas id="statusChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="chart-container" style="flex: 1; height: 300px;">
+        <div class="chart-header">
+            <h2 class="chart-title">Average Speed by Truck</h2>
+        </div>
+        <div style="position: relative; height: 250px;">
+            <canvas id="speedChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Search Bar -->
+<div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Search Trucks..." onkeyup="filterTable()">
+</div>
+
+<!-- Table -->
+<table id="truckTable">
+    <thead>
+        <tr>
+            <th onclick="sortTable(0)">Truck ID</th>
+            <th onclick="sortTable(1)">Location</th>
+            <th onclick="sortTable(2)">Speed</th>
+            <th onclick="sortTable(3)">Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for truck in trucks %}
+        <tr>
+            <td>{{ truck.truck_id }}</td>
+            <td>{{ truck.location }}</td>
+            <td>{{ truck.speed }} km/h</td>
+            <td>
+                <span class="status-badge status-{{ truck.status|lower }}">
+                    {{ truck.status }}
+                </span>
+            </td>
+            <td>
+                <a href="{{ url_for('update_truck', truck_id=truck.truck_id) }}" class="action-btn">Update</a>
+                <a href="{{ url_for('delete_truck_route', truck_id=truck.truck_id) }}" class="action-btn danger" onclick="return confirm('Are you sure?')">Delete</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- JavaScript for Filtering, Sorting & Charts -->
+<script>
+function filterTable() {
+    let input = document.getElementById("searchInput").value.toLowerCase();
+    let rows = document.querySelectorAll("#truckTable tbody tr");
+    
+    rows.forEach(row => {
+        let found = Array.from(row.cells).some(cell => cell.innerText.toLowerCase().includes(input));
+        row.style.display = found ? "" : "none";
+    });
+}
+
+function sortTable(n) {
+    let table = document.getElementById("truckTable");
+    let tbody = table.querySelector("tbody");
+    let rows = Array.from(tbody.rows);
+    let ascending = table.dataset.sortOrder !== "asc";
+    
+    rows.sort((rowA, rowB) => {
+        let cellA = rowA.cells[n].innerText.trim().toLowerCase();
+        let cellB = rowB.cells[n].innerText.trim().toLowerCase();
+        
+        return ascending ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+    });
+    
+    tbody.append(...rows);
+    table.dataset.sortOrder = ascending ? "asc" : "desc";
+}
+
+// Count trucks by status for pie chart
+const trucksByStatus = {
+    {% for status in trucks|map(attribute='status')|unique %}
+    "{{ status }}": {{ trucks|selectattr('status', 'equalto', status)|list|length }},
+    {% endfor %}
+};
+
+// Extract truck data for bar chart
+const truckSpeeds = {
+    {% for truck in trucks %}
+    "{{ truck.truck_id }}": {{ truck.speed }},
+    {% endfor %}
+};
+
+// Create Status Pie Chart
+document.addEventListener('DOMContentLoaded', function() {
+    // Status Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    const statusLabels = Object.keys(trucksByStatus);
+    const statusData = Object.values(trucksByStatus);
+    
+    const statusColors = {
+        'Active': 'rgba(52, 168, 83, 0.8)',
+        'Inactive': 'rgba(234, 67, 53, 0.8)',
+        'Maintenance': 'rgba(251, 188, 4, 0.8)',
+        'Standby': 'rgba(66, 133, 244, 0.8)'
+    };
+    
+    const backgroundColors = statusLabels.map(status => statusColors[status] || 'rgba(128, 128, 128, 0.8)');
+    
+    new Chart(statusCtx, {
+        type: 'pie',
+        data: {
+            labels: statusLabels,
+            datasets: [{
+                data: statusData,
+                backgroundColor: backgroundColors,
+                borderColor: 'white',
+                borderWidth: 2,
+                hoverOffset: 10
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        font: {
+                            size: 14
+                        }
+                    }
+                },
+                datalabels: {
+                    color: 'white',
+                    font: {
+                        weight: 'bold',
+                        size: 14
+                    },
+                    formatter: (value, ctx) => {
+                        const dataset = ctx.chart.data.datasets[0];
+                        const total = dataset.data.reduce((sum, data) => sum + data, 0);
+                        const percentage = Math.round((value / total) * 100) + '%';
+                        return percentage;
+                    }
+                }
+            }
+        }
+    });
+    
+    // Speed Chart
+    const speedCtx = document.getElementById('speedChart').getContext('2d');
+    const truckIds = Object.keys(truckSpeeds);
+    const speedValues = Object.values(truckSpeeds);
+    
+    new Chart(speedCtx, {
+        type: 'bar',
+        data: {
+            labels: truckIds,
+            datasets: [{
+                label: 'Speed (km/h)',
+                data: speedValues,
+                backgroundColor: 'rgba(66, 133, 244, 0.8)',
+                borderColor: 'rgba(66, 133, 244, 1)',
+                borderWidth: 1,
+                borderRadius: 4,
+                barThickness: 25,
+                maxBarThickness: 35
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Speed (km/h)',
+                        font: {
+                            size: 14
+                        }
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Truck ID',
+                        font: {
+                            size: 14
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

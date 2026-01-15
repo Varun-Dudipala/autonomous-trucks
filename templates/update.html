@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 style="text-align:center;"> Update Truck Status</h1>
+
+<form method="POST">
+    <label>New Status:</label>
+    <select name="status">
+        <option>Active</option>
+        <option>Inactive</option>
+    </select>
+    <button type="submit">Update</button>
+</form>
+{% endblock %}

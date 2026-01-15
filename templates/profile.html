@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 style="text-align:center;">User Profile</h1>
+
+<div class="profile-container">
+    <div class="profile-card">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                <div class="avatar-placeholder">{{ user.username|upper|first }}</div>
+            </div>
+            <div class="profile-title">
+                <h2>{{ user.full_name|default(user.username, true) }}</h2>
+                <p>{{ user.email|default('No email provided', true) }}</p>
+            </div>
+        </div>
+        
+        <div class="profile-details">
+            <form method="POST" action="{{ url_for('update_profile') }}">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" value="{{ user.username }}" disabled>
+                </div>
+                
+                <div class="form-group">
+                    <label for="full_name">Full Name:</label>
+                    <input type="text" name="full_name" id="full_name" value="{{ user.full_name|default('', true) }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" name="email" id="email" value="{{ user.email|default('', true) }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone:</label>
+                    <input type="tel" name="phone" id="phone" value="{{ user.phone|default('', true) }}">
+                </div>
+                
+                <button type="submit" class="btn">Update Profile</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="profile-activity">
+        <h3>Recent Activity</h3>
+        <ul class="activity-list">
+            <li class="activity-item">
+                <div class="activity-icon">📋</div>
+                <div class="activity-content">
+                    <p class="activity-text">You created a service request for Truck-123</p>
+                    <p class="activity-date">April 14, 2025</p>
+                </div>
+            </li>
+            <li class="activity-item">
+                <div class="activity-icon">🚚</div>
+                <div class="activity-content">
+                    <p class="activity-text">You scheduled Truck-456 for delivery to New York</p>
+                    <p class="activity-date">April 13, 2025</p>
+                </div>
+            </li>
+            <li class="activity-item">
+                <div class="activity-icon">🔧</div>
+                <div class="activity-content">
+                    <p class="activity-text">Maintenance request approved for Truck-789</p>
+                    <p class="activity-date">April 10, 2025</p>
+                </div>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

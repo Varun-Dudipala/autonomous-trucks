@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 style="text-align:center;">Schedule Trucks</h1>
+
+<div class="schedule-container">
+    <div class="schedule-form">
+        <h3>Create New Schedule</h3>
+        <form method="POST" action="{{ url_for('add_schedule') }}">
+            <div class="form-group">
+                <label for="truck_id">Select Truck:</label>
+                <select name="truck_id" id="truck_id" required>
+                    <option value="">-- Select Truck --</option>
+                    {% for truck in trucks %}
+                    <option value="{{ truck.truck_id }}">{{ truck.truck_id }} ({{ truck.status }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="destination">Destination:</label>
+                <input type="text" name="destination" id="destination" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="departure_time">Departure Time:</label>
+                <input type="datetime-local" name="departure_time" id="departure_time" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="arrival_time">Expected Arrival Time:</label>
+                <input type="datetime-local" name="arrival_time" id="arrival_time" required>
+            </div>
+            
+            <button type="submit" class="btn">Schedule Truck</button>
+        </form>
+    </div>
+    
+    <div class="schedule-calendar">
+        <h3>Truck Schedule Calendar</h3>
+        <div id="schedule-calendar-container"></div>
+    </div>
+</div>
+
+<div class="schedule-list">
+    <h3>Current Schedules</h3>
+    <table id="scheduleTable">
+        <thead>
+            <tr>
+                <th>Truck ID</th>
+                <th>Destination</th>
+                <th>Departure</th>
+                <th>Expected Arrival</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if schedules %}
+                {% for sch in schedules %}
+                <tr>
+                    <td>{{ sch.truck_id }}</td>
+                    <td>{{ sch.destination }}</td>
+                    <td>{{ sch.departure_time }}</td>
+                    <td>{{ sch.arrival_time }}</td>
+                    <td>{{ sch.status }}</td>
+                    <td>
+                        <!-- Placeholder for future actions -->
+                        <!-- <button class="action-btn">Edit</button> -->
+                        <!-- <button class="action-btn">Cancel</button> -->
+                    </td>
+                </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="6" style="text-align:center;">No schedules found.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Simple validation to ensure arrival time is after departure time
+    const departureInput = document.getElementById('departure_time');
+    const arrivalInput = document.getElementById('arrival_time');
+    
+    arrivalInput.addEventListener('change', function() {
+        if (new Date(departureInput.value) >= new Date(arrivalInput.value)) {
+            alert('Arrival time must be after departure time');
+            arrivalInput.value = '';
+        }
+    });
+});
+</script>
+{% endblock %}

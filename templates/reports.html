@@ -1,0 +1,511 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 style="margin-bottom: 30px;">Fleet Performance Reports</h1>
+
+<div class="dashboard-grid">
+    <div class="dashboard-card">
+        <h3>Average Fleet Speed</h3>
+        <div class="number">
+            {% set total_speed = 0 %}
+            {% for truck in trucks %}
+                {% set total_speed = total_speed + truck.speed|int %}
+            {% endfor %}
+            {% if trucks|length > 0 %}
+                {{ (total_speed / trucks|length)|round(1) }}
+            {% else %}
+                0
+            {% endif %}
+            km/h
+        </div>
+    </div>
+    
+    <div class="dashboard-card">
+        <h3>Active Trucks</h3>
+        <div class="number">{{ trucks|selectattr('status', 'equalto', 'Active')|list|length }}</div>
+        <div class="number-detail">of {{ trucks|length }} total</div>
+    </div>
+    
+    <div class="dashboard-card">
+        <h3>Efficiency Rate</h3>
+        <div class="number">
+            {% set active_count = trucks|selectattr('status', 'equalto', 'Active')|list|length %}
+            {% if trucks|length > 0 %}
+                {{ ((active_count / trucks|length) * 100)|round(1) }}%
+            {% else %}
+                0%
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="chart-container" style="height: 350px; margin-bottom: 30px;">
+    <div class="chart-header">
+        <h2 class="chart-title">Truck Status Over Time</h2>
+    </div>
+    <div style="position: relative; height: 300px;">
+        <canvas id="timelineChart"></canvas>
+    </div>
+</div>
+
+<div class="chart-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+    <div class="chart-container" style="height: 350px;">
+        <div class="chart-header">
+            <h2 class="chart-title">Status Distribution</h2>
+        </div>
+        <div style="position: relative; height: 300px;">
+            <canvas id="statusDonutChart"></canvas>
+        </div>
+    </div>
+    
+    <div class="chart-container" style="height: 350px;">
+        <div class="chart-header">
+            <h2 class="chart-title">Speed Distribution</h2>
+        </div>
+        <div style="position: relative; height: 300px;">
+            <canvas id="speedDistributionChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<div class="chart-container" style="height: 450px; margin: 0 auto 40px auto; max-width: 900px;">
+    <div class="chart-header">
+        <h2 class="chart-title">Truck Performance Comparison</h2>
+    </div>
+    <div style="position: relative; height: 400px;">
+        <canvas id="radarChart"></canvas>
+    </div>
+</div>
+
+<h2 style="margin: 30px 0 20px;">Detailed Truck Data</h2>
+
+<!-- Search and filter controls -->
+<div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+    <div>
+        <label for="statusFilter" style="margin-right: 10px;">Filter by Status:</label>
+        <select id="statusFilter" onchange="filterTable()">
+            <option value="">All</option>
+            {% for status in trucks|map(attribute='status')|unique %}
+            <option value="{{ status }}">{{ status }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="search-bar" style="margin-bottom: 0;">
+        <input type="text" id="searchInput" placeholder="Search Trucks..." onkeyup="filterTable()">
+    </div>
+</div>
+
+<!-- Table with detailed data -->
+<table id="truckTable">
+    <thead>
+        <tr>
+            <th onclick="sortTable(0)">Truck ID</th>
+            <th onclick="sortTable(1)">Location</th>
+            <th onclick="sortTable(2)">Speed</th>
+            <th onclick="sortTable(3)">Status</th>
+            <th>Efficiency</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for truck in trucks %}
+        <tr>
+            <td>{{ truck.truck_id }}</td>
+            <td>{{ truck.location }}</td>
+            <td>{{ truck.speed }} km/h</td>
+            <td>
+                <span class="status-badge status-{{ truck.status|lower }}">
+                    {{ truck.status }}
+                </span>
+            </td>
+            <td>
+                <!-- Efficiency percentages are currently hardcoded based on truck status and ID -->
+                <!-- In a real-world application, these would be calculated from actual performance metrics -->
+                {% if truck.status == 'Active' %}
+                    {% set efficiency = 85 + (truck.truck_id|int % 15) %}
+                {% elif truck.status == 'Maintenance' %}
+                    {% set efficiency = 40 + (truck.truck_id|int % 20) %}
+                {% else %}
+                    {% set efficiency = 60 + (truck.truck_id|int % 20) %}
+                {% endif %}
+                
+                <div class="progress-bar">
+                    <div class="progress" style="width: {{ efficiency }}%; 
+                        background-color: 
+                        {% if efficiency > 80 %}var(--secondary-color)
+                        {% elif efficiency > 60 %}var(--accent-color)
+                        {% else %}var(--danger-color)
+                        {% endif %};">
+                    </div>
+                    <span>{{ efficiency }}%</span>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<style>
+    .number-detail {
+        color: var(--text-secondary);
+        font-size: 14px;
+        margin-top: -5px;
+    }
+    
+    .progress-bar {
+        height: 20px;
+        background-color: rgba(0,0,0,0.05);
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .progress {
+        height: 100%;
+        border-radius: 10px;
+    }
+    
+    .progress-bar span {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+</style>
+
+<script>
+// Table filtering and sorting
+function filterTable() {
+    const searchInput = document.getElementById("searchInput").value.toLowerCase();
+    const statusFilter = document.getElementById("statusFilter").value;
+    const rows = document.querySelectorAll("#truckTable tbody tr");
+    
+    rows.forEach(row => {
+        const status = row.cells[3].textContent.trim();
+        const textMatch = Array.from(row.cells).some(cell => 
+            cell.textContent.toLowerCase().includes(searchInput));
+        const statusMatch = statusFilter === "" || status.includes(statusFilter);
+        
+        row.style.display = textMatch && statusMatch ? "" : "none";
+    });
+}
+
+function sortTable(n) {
+    const table = document.getElementById("truckTable");
+    const tbody = table.querySelector("tbody");
+    const rows = Array.from(tbody.rows);
+    const ascending = table.dataset.sortOrder !== "asc";
+    
+    rows.sort((rowA, rowB) => {
+        let cellA = rowA.cells[n].textContent.trim().toLowerCase();
+        let cellB = rowB.cells[n].textContent.trim().toLowerCase();
+        
+        // Handle numeric sorting for speed column
+        if(n === 2) {
+            cellA = parseFloat(cellA);
+            cellB = parseFloat(cellB);
+            return ascending ? cellA - cellB : cellB - cellA;
+        }
+        
+        return ascending ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+    });
+    
+    tbody.append(...rows);
+    table.dataset.sortOrder = ascending ? "asc" : "desc";
+}
+
+// Charts
+document.addEventListener('DOMContentLoaded', function() {
+    // Get truck statuses for charts
+    const statuses = [
+        {% for truck in trucks %}
+            "{{ truck.status }}",
+        {% endfor %}
+    ];
+    
+    const speeds = [
+        {% for truck in trucks %}
+            {{ truck.speed }},
+        {% endfor %}
+    ];
+    
+    const truckIds = [
+        {% for truck in trucks %}
+            "{{ truck.truck_id }}",
+        {% endfor %}
+    ];
+    
+    // Status distribution
+    const statusCounts = {};
+    statuses.forEach(status => {
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+    
+    // Colors for statuses
+    const statusColors = {
+        'Active': 'rgba(52, 168, 83, 0.8)',
+        'Inactive': 'rgba(234, 67, 53, 0.8)',
+        'Maintenance': 'rgba(251, 188, 4, 0.8)',
+        'Standby': 'rgba(66, 133, 244, 0.8)'
+    };
+    
+    // Status Donut Chart
+    const statusCtx = document.getElementById('statusDonutChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(statusCounts),
+            datasets: [{
+                data: Object.values(statusCounts),
+                backgroundColor: Object.keys(statusCounts).map(status => 
+                    statusColors[status] || 'rgba(128, 128, 128, 0.8)'),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                }
+            },
+            cutout: '70%'
+        }
+    });
+    
+    // Speed Distribution Chart
+    const speedCtx = document.getElementById('speedDistributionChart').getContext('2d');
+    
+    // Create speed distribution buckets
+    const speedBuckets = {
+        '0-20 km/h': 0,
+        '21-40 km/h': 0,
+        '41-60 km/h': 0,
+        '61-80 km/h': 0,
+        '81-100 km/h': 0,
+        '100+ km/h': 0
+    };
+    
+    speeds.forEach(speed => {
+        if (speed <= 20) speedBuckets['0-20 km/h']++;
+        else if (speed <= 40) speedBuckets['21-40 km/h']++;
+        else if (speed <= 60) speedBuckets['41-60 km/h']++;
+        else if (speed <= 80) speedBuckets['61-80 km/h']++;
+        else if (speed <= 100) speedBuckets['81-100 km/h']++;
+        else speedBuckets['100+ km/h']++;
+    });
+    
+    new Chart(speedCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(speedBuckets),
+            datasets: [{
+                label: 'Number of Trucks',
+                data: Object.values(speedBuckets),
+                backgroundColor: 'rgba(66, 133, 244, 0.7)',
+                borderColor: 'rgba(66, 133, 244, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    },
+                    title: {
+                        display: true,
+                        text: 'Number of Trucks'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Speed Range'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Radar Chart (Truck Performance Comparison)
+    // Only use first 5 trucks for clarity
+    const selectedTrucks = truckIds.slice(0, 5);
+    
+    // Generate random performance metrics
+    const generatePerformanceData = () => {
+        return {
+            speed: Math.floor(Math.random() * 80) + 20,
+            fuelEff: Math.floor(Math.random() * 50) + 50,
+            mileage: Math.floor(Math.random() * 40) + 60,
+            maintenance: Math.floor(Math.random() * 70) + 30,
+            reliability: Math.floor(Math.random() * 30) + 70
+        };
+    };
+    
+    const truckPerformance = {};
+    selectedTrucks.forEach(id => {
+        truckPerformance[id] = generatePerformanceData();
+    });
+    
+    const radarColors = [
+        'rgba(66, 133, 244, 0.7)',
+        'rgba(52, 168, 83, 0.7)',
+        'rgba(251, 188, 4, 0.7)',
+        'rgba(234, 67, 53, 0.7)',
+        'rgba(70, 189, 198, 0.7)'
+    ];
+    
+    const radarBorderColors = [
+        'rgba(66, 133, 244, 1)',
+        'rgba(52, 168, 83, 1)',
+        'rgba(251, 188, 4, 1)',
+        'rgba(234, 67, 53, 1)',
+        'rgba(70, 189, 198, 1)'
+    ];
+    
+    const radarCtx = document.getElementById('radarChart').getContext('2d');
+    new Chart(radarCtx, {
+        type: 'radar',
+        data: {
+            labels: ['Speed', 'Fuel Efficiency', 'Mileage', 'Maintenance', 'Reliability'],
+            datasets: selectedTrucks.map((id, index) => ({
+                label: 'Truck ' + id,
+                data: [
+                    truckPerformance[id].speed,
+                    truckPerformance[id].fuelEff,
+                    truckPerformance[id].mileage,
+                    truckPerformance[id].maintenance,
+                    truckPerformance[id].reliability
+                ],
+                backgroundColor: radarColors[index],
+                borderColor: radarBorderColors[index],
+                borderWidth: 1
+            }))
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                r: {
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        stepSize: 20,
+                        showLabelBackdrop: false
+                    },
+                    pointLabels: {
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Timeline Chart (Status over time) - Simulated data
+    const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+    
+    // Create simulated timeline data (6 months)
+    const months = ['January', 'February', 'March', 'April', 'May', 'June'];
+    const simulateMonthlyData = () => {
+        return {
+            active: Math.floor(Math.random() * 5) + 5,
+            maintenance: Math.floor(Math.random() * 3) + 1,
+            inactive: Math.floor(Math.random() * 2),
+            standby: Math.floor(Math.random() * 2) + 1
+        };
+    };
+    
+    const timelineData = months.map(simulateMonthlyData);
+    
+    new Chart(timelineCtx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Active',
+                    data: timelineData.map(d => d.active),
+                    backgroundColor: 'rgba(52, 168, 83, 0.1)',
+                    borderColor: 'rgba(52, 168, 83, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Maintenance',
+                    data: timelineData.map(d => d.maintenance),
+                    backgroundColor: 'rgba(251, 188, 4, 0.1)',
+                    borderColor: 'rgba(251, 188, 4, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Inactive',
+                    data: timelineData.map(d => d.inactive),
+                    backgroundColor: 'rgba(234, 67, 53, 0.1)',
+                    borderColor: 'rgba(234, 67, 53, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Standby',
+                    data: timelineData.map(d => d.standby),
+                    backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                    borderColor: 'rgba(66, 133, 244, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Trucks'
+                    },
+                    stacked: false
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Month'
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

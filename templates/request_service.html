@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1 style="text-align:center;">Request Truck Service</h1>
+
+<div class="service-container">
+    <div class="service-form">
+        <h3>Create Service Request</h3>
+        <form method="POST" action="{{ url_for('submit_service_request') }}">
+            <div class="form-group">
+                <label for="truck_id">Select Truck:</label>
+                <select name="truck_id" id="truck_id" required>
+                    <option value="">-- Select Truck --</option>
+                    {% for truck in trucks %}
+                    <option value="{{ truck.truck_id }}">{{ truck.truck_id }} ({{ truck.status }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="service_type">Service Type:</label>
+                <select name="service_type" id="service_type" required>
+                    <option value="">-- Select Service Type --</option>
+                    <option value="Maintenance">Regular Maintenance</option>
+                    <option value="Repair">Repair</option>
+                    <option value="Inspection">Safety Inspection</option>
+                    <option value="Software">Software Update</option>
+                    <option value="Hardware">Hardware Upgrade</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <textarea name="description" id="description" rows="4" required></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="requested_date">Requested Date:</label>
+                <input type="date" name="requested_date" id="requested_date" required>
+            </div>
+            
+            <button type="submit" class="btn">Submit Request</button>
+        </form>
+    </div>
+    
+    <div class="service-history">
+        <h3>Service Request History</h3>
+        <table id="serviceTable">
+            <thead>
+                <tr>
+                    <th>Truck ID</th>
+                    <th>Service Type</th>
+                    <th>Requested Date</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if service_requests %}
+                    {% for request in service_requests %}
+                    <tr>
+                        <td>{{ request.truck_id }}</td>
+                        <td>{{ request.service_type }}</td>
+                        <td>{{ request.requested_date }}</td>
+                        <td>{{ request.status }}</td>
+                        <td>
+                            <button class="action-btn" onclick="showDetails('{{ request.description }}')">View</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center;">No service requests found</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="detailsModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn">&times;</span>
+        <h3>Service Request Details</h3>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<script>
+// Get the modal
+const modal = document.getElementById('detailsModal');
+const modalContent = document.getElementById('modalContent');
+const closeBtn = document.querySelector('.close-btn');
+
+// Function to show service request details
+function showDetails(details) {
+    modalContent.innerHTML = `<p>${details}</p>`;
+    modal.style.display = 'block';
+}
+
+// Close the modal when the user clicks on close button
+closeBtn.onclick = function() {
+    modal.style.display = 'none';
+}
+
+// Close the modal when the user clicks outside of it
+window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Validate the requested date to be in the future
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('requested_date');
+    
+    dateInput.addEventListener('change', function() {
+        const selectedDate = new Date(this.value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (selectedDate < today) {
+            alert('Please select a future date for the service request');
+            this.value = '';
+        }
+    });
+});
+</script>
+{% endblock %}
