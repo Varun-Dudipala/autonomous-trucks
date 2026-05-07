@@ -268,7 +268,7 @@ When contributing features for fleet management:
 
 ## Questions?
 
-Feel free to open an issue with the `question` label, or reach out to [@varun-dudipala](https://github.com/varun-dudipala).
+Feel free to open an issue with the `question` label for any questions.
 
 ## Code of Conduct
 

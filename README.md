@@ -8,8 +8,6 @@
 
 A comprehensive web-based fleet management system for monitoring, tracking, and managing autonomous trucks. Real-time tracking with Google Maps, intelligent scheduling, maintenance alerts, and full user management.
 
-> **Add these topics to your GitHub repo**: `fleet-management`, `autonomous-vehicles`, `logistics`, `python`, `flask`, `mongodb`, `real-time-tracking`, `google-maps`, `web-application`, `transportation`, `iot`, `dashboard`
-
 ## Features
 
 ### Core Fleet Management
@@ -110,7 +108,7 @@ autonomous_trucks/
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/varun-dudipala/autonomous-trucks.git
+   git clone https://github.com/your-username/autonomous-trucks.git
    cd autonomous-trucks
    ```
 
@@ -242,6 +240,7 @@ PORT = 5000
 # Simulation
 CARLA_HOST = "localhost"
 CARLA_PORT = 2000
+CARLA_ROOT = "C:\\CARLA_0.9.14\\WindowsNoEditor"
 ```
 
 ## Database Schema

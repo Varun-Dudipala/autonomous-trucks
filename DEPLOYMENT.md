@@ -122,7 +122,7 @@ Before deploying, ensure you have:
 
 3. **Clone and setup application**
    ```bash
-   git clone https://github.com/varun-dudipala/autonomous-trucks.git
+    git clone https://github.com/your-username/autonomous-trucks.git
    cd autonomous-trucks
 
    python3 -m venv venv
@@ -464,7 +464,7 @@ if not app.debug:
 
 ## Support
 
-For deployment issues, open an issue on [GitHub](https://github.com/varun-dudipala/autonomous-trucks/issues).
+For deployment issues, open an issue in this repository.
 
 ---
 

@@ -284,7 +284,7 @@ def run_simulation():
 
     if simulation_type == "carla_automatic":
         # Paths for CARLA
-        carla_root = r"C:\Users\varun\Downloads\CARLA_0.9.14\WindowsNoEditor"
+        carla_root = os.getenv("CARLA_ROOT", r"C:\CARLA_0.9.14\WindowsNoEditor")
         carla_api_path = os.path.join(carla_root, "PythonAPI")
         carla_egg_name = "carla-0.9.14-py3.7-win-amd64.egg"
         carla_egg_path = os.path.join(carla_api_path, "carla", "dist", carla_egg_name)
