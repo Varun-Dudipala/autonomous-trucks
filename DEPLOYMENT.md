@@ -121,7 +121,7 @@ Before deploying, ensure you have:
    ```
 
 3. **Clone and setup application**
-   ```bash
+    ```bash
     git clone https://github.com/your-username/autonomous-trucks.git
    cd autonomous-trucks
 

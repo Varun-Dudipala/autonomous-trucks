@@ -240,7 +240,7 @@ PORT = 5000
 # Simulation
 CARLA_HOST = "localhost"
 CARLA_PORT = 2000
-CARLA_ROOT = "C:\\CARLA_0.9.14\\WindowsNoEditor"
+CARLA_ROOT = "C:/CARLA_0.9.14/WindowsNoEditor"
 ```
 
 ## Database Schema
